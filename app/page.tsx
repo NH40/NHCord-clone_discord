@@ -1,4 +1,5 @@
 'use client'
+import MyChat from '@/components/MyChat'
 import { useClerk } from '@clerk/nextjs'
 import { useCallback, useEffect, useState } from 'react'
 import { User } from 'stream-chat'
@@ -92,5 +93,5 @@ export default function Home() {
 		return <LoadingIndicator />
 	}
 
-	return <div>welcome to Discord</div>
+	return <MyChat {...homeState} />
 }
