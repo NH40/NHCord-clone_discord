@@ -1,44 +1,71 @@
+import { useDiscordContext } from '@/context/DiscordContext'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { Channel } from 'stream-chat'
+import { useChatContext } from 'stream-chat-react'
 import CreateServerForm from './CreateServerForm'
 
 export default function ServerList() {
-	const [activeServer, setActiveServer] = useState<DiscordServer | undefined>()
-	const servers: DiscordServer[] = [
-		{
-			id: '1',
-			name: 'Test',
-			image:
-				'https://i.pinimg.com/564x/49/80/12/498012f5e058c5133f19a0552c9acc30.jpg',
-		},
-		{
-			id: '2',
-			name: 'Test2',
-			image:
-				'https://i.pinimg.com/564x/26/2d/7d/262d7daf788bd8b4729a06812f63d298.jpg',
-		},
-		{
-			id: '3',
-			name: 'Test3',
-			image:
-				'https://i.pinimg.com/564x/01/0f/de/010fde7adc3e0cd0f3afe4d11c5dc3e0.jpg',
-		},
-		{
-			id: '4',
-			name: 'Test4',
-			image: '',
-		},
-	]
+	const { server: activeServer, changeServer } = useDiscordContext()
+	const { client } = useChatContext()
+	const [serverList, setServerList] = useState<DiscordServer[]>([])
+
+	const loaderServerList = useCallback(async (): Promise<void> => {
+		const channels = await client.queryChannels({
+			type: 'messaging',
+			members: {
+				$in: [client.userID as string],
+			},
+		})
+		const serverSet: Set<DiscordServer> = new Set(
+			channels
+				.map((channel: Channel) => {
+					return {
+						//@ts-ignore
+						id: channel.data?.data?.id,
+						//@ts-ignore
+						name: (channel.data?.data?.server as string) ?? 'Unknown',
+						//@ts-ignore
+						image: channel.data?.data?.image,
+					}
+				})
+				.filter((server: DiscordServer) => server.name !== 'Unknown')
+				.filter(
+					(server: DiscordServer, index, self) =>
+						index ===
+						self.findIndex(serverObject => serverObject.name == server.name)
+				)
+		)
+		const serverArray = Array.from(serverSet.values())
+		setServerList(serverArray)
+		if (serverArray.length > 0) {
+			console.log(serverArray[0])
+			changeServer(serverArray[0], client)
+		}
+	}, [client, changeServer])
+
+	useEffect(() => {
+		loaderServerList()
+	}, [loaderServerList])
+
 	return (
 		<div className='bg-dark-gray h-full flex flex-col items-center'>
-			{servers.map(server => (
+			<button
+				onClick={() => changeServer(undefined, client)}
+				className={`block p-3 aspect-square sidebar-icon border-b-2 border-b-gray-300 ${
+					activeServer === undefined ? 'selected-icon' : ''
+				}`}
+			>
+				<div className='rounded-icon discord-icon'></div>
+			</button>
+			{serverList.map(server => (
 				<button
 					className={`p-4 sidebar-icon ${
-						server.id === activeServer?.id ? 'selected-icon' : ''
+						server.name === activeServer?.name ? 'selected-icon' : ''
 					}`}
-					key={server.id}
-					onClick={() => setActiveServer(server)}
+					key={server.name}
+					onClick={() => changeServer(server, client)}
 				>
 					{server.image && checkUrl(server.image) ? (
 						<Image

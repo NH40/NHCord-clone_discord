@@ -1,8 +1,11 @@
+import { useDiscordContext } from '@/context/DiscordContext'
 import { TUserObject } from '@/models/UserObject'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useChatContext } from 'stream-chat-react'
 import CloseIcon from '../Icons'
+import UserRow from './UserRow'
 
 type TFormState = {
 	serverName: string
@@ -11,9 +14,12 @@ type TFormState = {
 }
 
 export default function CreateServerForm() {
+	const { client } = useChatContext()
 	const params = useSearchParams()
 	const showCreateServerForm = params.get('createServer')
 	const dialogRef = useRef<HTMLDialogElement>(null)
+	const router = useRouter()
+	const { createServer } = useDiscordContext()
 
 	const initialState: TFormState = {
 		serverName: '',
@@ -21,6 +27,23 @@ export default function CreateServerForm() {
 		users: [],
 	}
 	const [formData, setFormData] = useState<TFormState>(initialState)
+	const [users, setUsers] = useState<TUserObject[]>([])
+
+	const loadUsers = useCallback(async () => {
+		const response = await client.queryUsers({})
+		const users: TUserObject[] = response.users
+			.filter(user => user.role !== 'admin')
+			.map(user => {
+				return {
+					id: user.id,
+					name: user.name ?? user.id,
+					image: user.image as string,
+					online: user.online,
+					lastOnline: user.last_active,
+				}
+			})
+		if (users) setUsers(users)
+	}, [client])
 
 	useEffect(() => {
 		if (showCreateServerForm && dialogRef.current) {
@@ -29,6 +52,10 @@ export default function CreateServerForm() {
 			dialogRef.current?.close()
 		}
 	}, [showCreateServerForm])
+
+	useEffect(() => {
+		loadUsers()
+	}, [loadUsers])
 
 	return (
 		<dialog className='absolute z-10 space-y-2 rounded-xl' ref={dialogRef}>
@@ -73,7 +100,59 @@ export default function CreateServerForm() {
 						required
 					/>
 				</div>
+				<h2 className='mb-2 labelTitle'>Добавить на сервер</h2>
+				<div className='max-h-64 overflow-y-scroll'>
+					{users.map(user => (
+						<UserRow key={user.id} user={user} userChanged={userChanged} />
+					))}
+				</div>
 			</form>
+			<div className='flex space-x-6 items-center justify-end p-6 bg-gray-200'>
+				<Link href={'/'} className='font-semibold text-gray-500'>
+					Завершить
+				</Link>
+				<button
+					onClick={createServerClicked}
+					type='submit'
+					disabled={buttonDisabled()}
+					className={`bg-discord rounded py-2 px-4 text-white font-bold uppercase ${
+						buttonDisabled() ? 'opacity-50 cursor-not-allowed' : ''
+					}`}
+				>
+					Создать Сервер
+				</button>
+			</div>
 		</dialog>
 	)
+
+	function createServerClicked() {
+		createServer(
+			client,
+			formData.serverName,
+			formData.serverImage,
+			formData.users.map(user => user.id)
+		)
+		setFormData(initialState)
+		router.replace('/')
+	}
+
+	function buttonDisabled(): boolean {
+		return (
+			!formData.serverName || !formData.serverImage || formData.users.length < 1
+		)
+	}
+
+	function userChanged(user: TUserObject, checked: boolean) {
+		if (checked) {
+			setFormData({
+				...formData,
+				users: [...formData.users, user],
+			})
+		} else {
+			setFormData({
+				...formData,
+				users: formData.users.filter(thisUser => thisUser.id !== user.id),
+			})
+		}
+	}
 }
