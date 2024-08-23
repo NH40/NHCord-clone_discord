@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useChatContext } from 'stream-chat-react'
-import CloseIcon from '../Icons'
+import { CloseIcon } from '../Icons'
 import UserRow from './UserRow'
 
 type TFormState = {

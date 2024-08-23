@@ -12,6 +12,7 @@ import {
 	Window,
 } from 'stream-chat-react'
 import 'stream-chat-react/dist/css/v2/index.css'
+import CustomChannelList from './ChannalList/CustomChannelList'
 import ServerList from './ServerList/ServerList'
 
 const MyChat = ({
@@ -35,7 +36,7 @@ const MyChat = ({
 		<Chat client={chatClient} theme='str-chat__theme-light'>
 			<section className='flex h-screen w-screen layout'>
 				<ServerList />
-				<ChannelList />
+				<ChannelList List={CustomChannelList} />
 				<Channel>
 					<Window>
 						<MessageList />

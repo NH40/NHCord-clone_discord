@@ -1,11 +1,13 @@
 'use client'
 
 import { createContext, useCallback, useContext, useState } from 'react'
-import { StreamChat } from 'stream-chat'
+import { Channel, ChannelFilters, StreamChat } from 'stream-chat'
+import { DefaultStreamChatGenerics } from 'stream-chat-react'
 import { v4 as uuid } from 'uuid'
 
 type DiscordState = {
 	server?: DiscordServer
+	channelsByCategories: Map<string, Array<Channel<DefaultStreamChatGenerics>>>
 	changeServer: (server: DiscordServer | undefined, client: StreamChat) => void
 	createServer: (
 		client: StreamChat,
@@ -17,21 +19,70 @@ type DiscordState = {
 
 const initialValue: DiscordState = {
 	server: undefined,
+	channelsByCategories: new Map(),
 	changeServer: () => {},
 	createServer: () => {},
 }
 
 const DiscordContext = createContext<DiscordState>(initialValue)
+
 export const DiscordContextProvider: any = ({
 	children,
 }: {
 	children: React.ReactNode
 }) => {
 	const [myState, setMyState] = useState<DiscordState>(initialValue)
+
 	const changeServer = useCallback(
 		async (server: DiscordServer | undefined, client: StreamChat) => {
+			let filters: ChannelFilters = {
+				type: 'messaging',
+				members: { $in: [client.userID as string] },
+			}
+			if (!server) {
+				filters.member_count = 2
+			}
+
+			console.log(
+				'[DiscordContext - loadServerList] Querying channels for ',
+				client.userID
+			)
+			const channels = await client.queryChannels(filters)
+			const channelsByCategories = new Map<
+				string,
+				Array<Channel<DefaultStreamChatGenerics>>
+			>()
+			if (server) {
+				const categories = new Set(
+					channels
+						.filter(channel => {
+							//@ts-ignore
+							return channel.data?.data?.server === server.name
+						})
+						.map(channel => {
+							//@ts-ignore
+							return channel.data?.data?.category
+						})
+				)
+
+				for (const category of Array.from(categories)) {
+					channelsByCategories.set(
+						category,
+						channels.filter(channel => {
+							return (
+								//@ts-ignore
+								channel.data?.data?.server === server.name &&
+								//@ts-ignore
+								channel.data?.data?.category === category
+							)
+						})
+					)
+				}
+			} else {
+				channelsByCategories.set('Direct Messages', channels)
+			}
 			setMyState(myState => {
-				return { ...myState, server }
+				return { ...myState, server, channelsByCategories }
 			})
 		},
 		[setMyState]
@@ -68,6 +119,7 @@ export const DiscordContextProvider: any = ({
 
 	const store: DiscordState = {
 		server: myState.server,
+		channelsByCategories: myState.channelsByCategories,
 		createServer: createServer,
 		changeServer: changeServer,
 	}
