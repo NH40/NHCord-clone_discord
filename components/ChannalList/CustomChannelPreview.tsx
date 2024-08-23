@@ -9,7 +9,7 @@ const CustomChannelPreview = (props: ChannelPreviewUIComponentProps) => {
 	return (
 		<div
 			className={`flex items-center mx-2 ${
-				props.channel.countUnread() > 0 ? 'channel-container' : ''
+				props.channel.countUnread() > 0 ? 'Контейнер канала' : ''
 			}`}
 		>
 			<button
@@ -18,7 +18,7 @@ const CustomChannelPreview = (props: ChannelPreviewUIComponentProps) => {
 			>
 				<span className='italic text-xl mr-2 text-gray-500'>#</span>
 				<span className='text-sm'>
-					{channel.data?.name || 'Channel Preview'}
+					{channel.data?.name || 'Название канала'}
 				</span>
 			</button>
 		</div>

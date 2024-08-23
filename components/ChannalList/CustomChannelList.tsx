@@ -16,7 +16,7 @@ const CustomChannelList: React.FC<ChannelListMessengerProps> = () => {
 					<CategoryItem
 						key={`${category}-${index}`}
 						category={category}
-						serverName={server?.name || 'Direct Messages'}
+						serverName={server?.name || 'Личные сообщение'}
 						channels={channelsByCategories.get(category) || []}
 					/>
 				))}

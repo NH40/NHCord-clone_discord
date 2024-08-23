@@ -103,7 +103,7 @@ export const DiscordContextProvider: any = ({
 					image: imageUrl,
 					serverId: serverId,
 					server: name,
-					category: 'Text Channels',
+					category: 'Текстовый канал',
 				},
 			})
 
