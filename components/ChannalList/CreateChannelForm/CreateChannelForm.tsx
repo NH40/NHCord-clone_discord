@@ -114,7 +114,7 @@ export default function CreateChannelForm() {
 			</form>
 			<div className='flex space-x-6 items-center justify-end p-6 bg-gray-200'>
 				<Link href={'/'} className='font-semibold text-gray-500'>
-					Cancel
+					Выход
 				</Link>
 				<button
 					type='submit'
