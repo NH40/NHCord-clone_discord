@@ -1,7 +1,10 @@
-import { ChannelListMessengerProps } from 'stream-chat-react'
-
 import { useDiscordContext } from '@/context/DiscordContext'
+import Image from 'next/image'
+import { ChannelListMessengerProps } from 'stream-chat-react'
 import CategoryItem from './CategoryItem'
+
+import ChannelListBottomBar from './BottomBar/ChannelListBottomBar'
+import CreateChannelForm from './CreateChannelForm/CreateChannelForm'
 import ChannelListTopBar from './TopBar/ChannelListTopBar'
 
 const CustomChannelList: React.FC<ChannelListMessengerProps> = () => {
@@ -11,6 +14,17 @@ const CustomChannelList: React.FC<ChannelListMessengerProps> = () => {
 		<div className='w-72 bg-medium-gray h-full flex flex-col items-start'>
 			<ChannelListTopBar serverName={server?.name || 'Direct Messages'} />
 
+			{server?.image ? (
+				<Image
+					src={server.image}
+					width={783}
+					height={200}
+					alt=''
+					className='w-full h-48'
+				/>
+			) : (
+				''
+			)}
 			<div className='w-full'>
 				{Array.from(channelsByCategories.keys()).map((category, index) => (
 					<CategoryItem
@@ -21,6 +35,8 @@ const CustomChannelList: React.FC<ChannelListMessengerProps> = () => {
 					/>
 				))}
 			</div>
+			<CreateChannelForm />
+			<ChannelListBottomBar />
 		</div>
 	)
 }
