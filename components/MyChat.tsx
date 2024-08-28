@@ -13,6 +13,8 @@ import {
 } from 'stream-chat-react'
 import 'stream-chat-react/dist/css/v2/index.css'
 import CustomChannelList from './ChannalList/CustomChannelList'
+import CustomChannelHeader from './MessageList/CustomChannelHeader/CustomChannelHeader'
+import CustomDateSeparator from './MessageList/CustomDateSeparator/CustomDateSeparator'
 import ServerList from './ServerList/ServerList'
 
 const MyChat = ({
@@ -37,7 +39,13 @@ const MyChat = ({
 			<section className='flex h-screen w-screen layout'>
 				<ServerList />
 				<ChannelList List={CustomChannelList} />
-				<Channel>
+				<Channel
+					DateSeparator={CustomDateSeparator}
+					HeaderComponent={CustomChannelHeader}
+					// Message={CustomMessage}
+					// reactionOptions={customReactionOptions}
+					// Input={MessageComposer}
+				>
 					<Window>
 						<MessageList />
 						<MessageInput />
