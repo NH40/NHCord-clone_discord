@@ -1,5 +1,6 @@
 import { useDiscordContext } from '@/context/DiscordContext'
 import { TUserObject } from '@/models/UserObject'
+import { useStreamVideoClient } from '@stream-io/video-react-sdk'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -15,6 +16,7 @@ type TFormState = {
 
 export default function CreateServerForm() {
 	const { client } = useChatContext()
+	const videoClient = useStreamVideoClient()
 	const params = useSearchParams()
 	const showCreateServerForm = params.get('createServer')
 	const dialogRef = useRef<HTMLDialogElement>(null)
@@ -126,8 +128,13 @@ export default function CreateServerForm() {
 	)
 
 	function createServerClicked() {
+		if (!videoClient) {
+			console.log('error videoClient')
+			return
+		}
 		createServer(
 			client,
+			videoClient,
 			formData.serverName,
 			formData.serverImage,
 			formData.users.map(user => user.id)

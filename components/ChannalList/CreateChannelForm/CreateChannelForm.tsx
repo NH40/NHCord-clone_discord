@@ -1,57 +1,60 @@
-import { CloseIcon } from '@/components/Icons'
-import UserRow from '@/components/ServerList/UserRow'
-import { useDiscordContext } from '@/context/DiscordContext'
-import { TUserObject } from '@/models/UserObject'
+import { useStreamVideoClient } from '@stream-io/video-react-sdk'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useChatContext } from 'stream-chat-react'
 
-type TChannelForm = {
+import { CloseMark, Speaker } from '@/components/Icons'
+import { useDiscordContext } from '@/context/DiscordContext'
+import { TUserObject } from '@/models/UserObject'
+import UserRow from './UserRow'
+
+type FormState = {
+	channelType: 'text' | 'voice'
 	channelName: string
 	category: string
 	users: TUserObject[]
 }
 
-export default function CreateChannelForm() {
+export default function CreateChannelForm(): JSX.Element {
 	const params = useSearchParams()
-	const router = useRouter()
-	const { client } = useChatContext()
-	const { createChannel } = useDiscordContext()
-
 	const showCreateChannelForm = params.get('createChannel')
-	const category = params.get('category')
 
 	const dialogRef = useRef<HTMLDialogElement>(null)
+	const router = useRouter()
 
-	const initialState: TChannelForm = {
+	const { client } = useChatContext()
+	const videoClient = useStreamVideoClient()
+	const { server, createChannel, createCall } = useDiscordContext()
+	const initialState: FormState = {
+		channelType: 'text',
 		channelName: '',
-		category: category ?? '',
+		category: '',
 		users: [],
 	}
-
-	const [formData, setFormData] = useState<TChannelForm>(initialState)
+	const [formData, setFormData] = useState<FormState>(initialState)
 	const [users, setUsers] = useState<TUserObject[]>([])
 
 	const loadUsers = useCallback(async () => {
-		const response = await client.queryUsers({})
-		const users: TUserObject[] = response.users
-			.filter(user => user.role !== 'admin')
-			.map(user => {
-				return {
-					id: user.id,
-					name: user.name ?? user.id,
-					image: user.image as string,
-					online: user.online,
-					lastOnline: user.last_active,
-				}
-			})
-		if (users) setUsers(users)
-	}, [client])
+		const response = await fetch('/api/users')
+		const data = (await response.json())?.data as TUserObject[]
+		if (data) setUsers(data)
+	}, [])
 
 	useEffect(() => {
 		loadUsers()
 	}, [loadUsers])
+
+	useEffect(() => {
+		const category = params.get('category')
+		const isVoice = params.get('isVoice')
+		setFormData({
+			channelType: isVoice ? 'voice' : 'text',
+			channelName: '',
+			category: category ?? '',
+			users: [],
+		})
+	}, [setFormData, params])
 
 	useEffect(() => {
 		if (showCreateChannelForm && dialogRef.current) {
@@ -62,21 +65,68 @@ export default function CreateChannelForm() {
 	}, [showCreateChannelForm])
 
 	return (
-		<dialog className=' absolute z-10 space-y-2 rounded-xl' ref={dialogRef}>
+		<dialog className='absolute z-10 space-y-2 rounded-xl' ref={dialogRef}>
 			<div className='w-full flex items-center justify-between py-8 px-6'>
-				<h2 className='text-3xl font-semibold text-gray-600'>
-					Создание канала
-				</h2>
+				<h2 className='text-3xl font-semibold text-gray-600'>Create Channel</h2>
 				<Link href='/'>
-					<CloseIcon className=' w-6 h-6 text-gray-400' />
+					<CloseMark className='w-10 h-10 text-gray-400' />
 				</Link>
 			</div>
 			<form method='dialog' className='flex flex-col space-y-4 px-6'>
-				<label htmlFor='channelName' className='labelTitle'>
+				<div className='space-y-4'>
+					<h3 className='labelTitle'>Тип Канала</h3>
+					<div className='w-full flex space-x-4 items-center bg-gray-100 px-4 py-2 rounded-md'>
+						<label
+							htmlFor='text'
+							className='flex flex-1 items-center space-x-6'
+						>
+							<span className='text-4xl text-gray-400'>#</span>
+							<div>
+								<p className='text-lg text-gray-700 font-semibold'>Текстовый</p>
+								<p className='text-gray-500'>
+									Send messages, images, GIFs, emoji, opinions, and puns
+								</p>
+							</div>
+						</label>
+						<input
+							type='radio'
+							id='text'
+							name='channelType'
+							value='text'
+							checked={formData.channelType === 'text'}
+							onChange={() => setFormData({ ...formData, channelType: 'text' })}
+						/>
+					</div>
+					<div className='w-full flex space-x-4 items-center bg-gray-100 px-4 py-2 rounded-md'>
+						<label
+							htmlFor='voice'
+							className='flex flex-1 items-center space-x-4'
+						>
+							<Speaker className='text-gray-400 w-7 h-7' />
+							<div>
+								<p className='text-lg text-gray-700 font-semibold'>Голосовой</p>
+								<p className='text-gray-500'>
+									Hang out together with voice, video, and screen share
+								</p>
+							</div>
+						</label>
+						<input
+							type='radio'
+							id='voice'
+							name='channelType'
+							value='voice'
+							checked={formData.channelType === 'voice'}
+							onChange={() =>
+								setFormData({ ...formData, channelType: 'voice' })
+							}
+						/>
+					</div>
+				</div>
+				<label className='labelTitle' htmlFor='channelName'>
 					Название канала
 				</label>
 				<div className='flex items-center bg-gray-100'>
-					<span className=' text-2xl p-2 text-gray-500'>#</span>
+					<span className='text-2xl p-2 text-gray-500'>#</span>
 					<input
 						type='text'
 						id='channelName'
@@ -88,13 +138,13 @@ export default function CreateChannelForm() {
 					/>
 				</div>
 				<label
-					htmlFor='category'
 					className='labelTitle flex items-center justify-between'
+					htmlFor='category'
 				>
-					Тип канала
+					Категория
 				</label>
 				<div className='flex items-center bg-gray-100'>
-					<span className=' text-2xl p-2 text-gray-500'>#</span>
+					<span className='text-2xl p-2 text-gray-500'>#</span>
 					<input
 						type='text'
 						id='category'
@@ -105,7 +155,7 @@ export default function CreateChannelForm() {
 						}
 					/>
 				</div>
-				<h2 className='mb-2 labelTitle'>Добавить пользователей</h2>
+				<h2 className='mb-2 labelTitle'>Добавить пользователя</h2>
 				<div className='max-h-64 overflow-y-scroll'>
 					{users.map(user => (
 						<UserRow user={user} userChanged={userChanged} key={user.id} />
@@ -114,7 +164,7 @@ export default function CreateChannelForm() {
 			</form>
 			<div className='flex space-x-6 items-center justify-end p-6 bg-gray-200'>
 				<Link href={'/'} className='font-semibold text-gray-500'>
-					Выход
+					Завершить
 				</Link>
 				<button
 					type='submit'
@@ -136,17 +186,6 @@ export default function CreateChannelForm() {
 		)
 	}
 
-	function createClicked() {
-		createChannel(
-			client,
-			formData.channelName,
-			formData.category,
-			formData.users.map(user => user.id)
-		)
-		setFormData(initialState)
-		router.replace('/')
-	}
-
 	function userChanged(user: TUserObject, checked: boolean) {
 		if (checked) {
 			setFormData({
@@ -159,5 +198,27 @@ export default function CreateChannelForm() {
 				users: formData.users.filter(thisUser => thisUser.id !== user.id),
 			})
 		}
+	}
+
+	function createClicked() {
+		if (formData.channelType === 'text') {
+			createChannel(
+				client,
+				formData.channelName,
+				formData.category,
+				formData.users.map(user => user.id)
+			)
+		}
+		if (formData.channelType === 'voice' && videoClient && server) {
+			createCall(
+				videoClient,
+				server,
+				formData.channelName,
+				formData.users.map(user => user.id)
+			)
+		}
+
+		setFormData(initialState)
+		router.replace('/')
 	}
 }

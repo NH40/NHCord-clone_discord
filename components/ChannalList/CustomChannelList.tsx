@@ -4,6 +4,7 @@ import { ChannelListMessengerProps } from 'stream-chat-react'
 import CategoryItem from './CategoryItem'
 
 import ChannelListBottomBar from './BottomBar/ChannelListBottomBar'
+import CallList from './CallList/CallList'
 import CreateChannelForm from './CreateChannelForm/CreateChannelForm'
 import ChannelListTopBar from './TopBar/ChannelListTopBar'
 
@@ -35,6 +36,7 @@ const CustomChannelList: React.FC<ChannelListMessengerProps> = () => {
 					/>
 				))}
 			</div>
+			<CallList />
 			<CreateChannelForm />
 			<ChannelListBottomBar />
 		</div>
